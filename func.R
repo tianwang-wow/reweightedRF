@@ -1,7 +1,7 @@
 Rcpp::sourceCpp('func_cpp.cpp')
 
-reweighted_RF = function(RF, # a fitted random forest
-                         data_x, # a matrix of input features: row: subjects; column: features
+reweighted_RF = function(RF, # a fitted random forest from the R package "ranger"
+                         data_x, # a matrix of input features: row: samples x column: features
                          data_y # a vector of responses: either continuous or binary
 )
 {
@@ -17,10 +17,9 @@ reweighted_RF = function(RF, # a fitted random forest
   return(out)
 }
 
-
-predict_reweighted_RF = function(fit, # a fitted reweighted_RF
-                                 new_data_x, # a matrix of input features: row: new subjects; column: features
-                                 new_Kmat_ls # a list of kernel values: row TE x column TR samples
+predict_reweighted_RF = function(fit, # a fitted reweightedRF
+                                 new_data_x, # a matrix of input features: row: new samples x column: features
+                                 new_Kmat_ls # a list of kernel values: row testing x column training samples
 )
 {
   if (is.factor(fit$data_y)) { data_y = as.numeric(as.character(fit$data_y)) }
@@ -33,7 +32,6 @@ predict_reweighted_RF = function(fit, # a fitted reweighted_RF
                           new_terminal_nodes)
   Kmat_RF = new_wt / rowSums(new_wt) # kernel from RF
   
-  pred_mat = NULL
   pred_mat = Kmat_RF %*% fit$data_y
   colnames(pred_mat)[1] = 'Original'
   for (l_id in 1:length(new_Kmat_ls)) {
