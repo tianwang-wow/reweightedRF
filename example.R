@@ -34,7 +34,7 @@ mean_dist = mean(distmat[TR_ind, TR_ind][upper.tri(distmat[TR_ind, TR_ind])])
 Kmat_ls = list()
 for (l_id in 1:length(eta)) { Kmat_ls[[l_id]] = exp(- distmat^2 / 2 / (mean_dist * eta[l_id])^2) }
 names(Kmat_ls) = paste0('eta = ', eta)
-new_Kmat_ls_RF = lapply(Kmat_ls, function(x) x[-TR_ind, TR_ind]) # a list of 3 kernel matrices: row: testing samples x column: testing samples
+new_Kmat_ls_RF = lapply(Kmat_ls, function(x) x[-TR_ind, TR_ind]) # a list of 3 kernel matrices: row: testing samples x column: training samples
 
 ### Find predictions on testing samples using reweightedRF
 pred_Re_RF = predict_reweighted_RF(fit = fit_Re_RF,
