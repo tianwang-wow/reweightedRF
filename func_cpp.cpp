@@ -48,7 +48,6 @@ arma::mat UniFrac_G (arma::mat OTUtab, arma::rowvec br_len, double alpha) {
   arma::rowvec sub_j(p), sub_i(p), temp_sum(p), temp_diff(p); arma::uvec pos_ids;
   for (int i=0; i<=(n_sub-2); i++) {
     sub_i = OTUtab.row(i);
-    // Rcout<<i<<';';
     for (int j=(i+1); j<=(n_sub-1); j++) {
       sub_j = OTUtab.row(j);
       temp_sum = sub_i+sub_j; temp_diff = abs(sub_i-sub_j);
