@@ -1,49 +1,50 @@
-setwd('/Users/SpaceRanger/OneDriveLocal/Work/Microbiome/R_code_RF_Ens/Github_code/Github_code_12242023')
+source('func.R')
 
 library(ranger) # for random forest
+library(castor) # for microbiome distance calculation
+library(Rsolnp) # for finding ensemble weights
+library(quadprog) # for finding ensemble weights
+library(pROC) # for AUC calculation
 library(Rcpp)
 library(RcppArmadillo)
 
-source('func.R')
+### Load "dataset" (600 samples of 856 OTU counts + outcome) and "tree" (a phylogenetic tree)
+load('./Data/Simulated_data.RData')
 
-### Generate data
+OTUtab = dataset[, 1:856] # OTU count table
+dataset[,1:856] = dataset[,1:856] / rowSums(dataset[,1:856]) # convert OTU counts to abundances
+TR_ind = 1:300 # training samples
+TR_data = dataset[TR_ind, ] # training data
+TE_data_withY = dataset[- TR_ind, ] # testing data with outcome
+TE_data = TE_data_withY[, 1:856] # testing data without outcome
+
+### Calculate different microbiome distances of both training and testing samples
+distmat_ls = UniFrac_dist(OTUtab = OTUtab, # OTU count table
+                          type = c('BC', 'Unweighted', 0, 0.5, 'Weighted'), # microbiome distances to calculate
+                          tree = tree)
+TR_distmat_ls = lapply(distmat_ls, function(x) x[TR_ind, TR_ind]) # distances for training samples
+
+### Fit ensemble estimate
 set.seed(123)
-n = 1000
-p = 50
-data_x = matrix(nrow = n, rnorm(n * 100))
-prob = 1/(1 + 0.5 * exp(- data_x[, c(1, 100)]))
-data_y = rbinom(n, 1, prob)
-dataset = cbind(data_x[, 1:p], data_y)
-colnames(dataset) = c(paste0('X', 1:p), 'Y')
-TR_ind = 1:500 # training samples
+fit = ensemble(TR_data = TR_data, # data to fit
+               TR_distmat_ls = TR_distmat_ls, # list of microbiome distances
+               n_CV = 5, # number of folds in cross-validataions
+               eta_vec = seq(0.1, 1, 0.1), # possible values of hyper-parameter for gaussian kernel
+               outcome = 'Y', # outcome name in TR_data
+               outcome_type = 'binary', # continuous or binary outcome
+               num.trees = 1000, # number of trees in RF
+               min.node.size = 10 # min.node.size in RF
+               )
+               
+fit$ens_weights # ensemble weights
+fit$optimal_eta # optimal etas
 
-### Fit a regular random forest using training samples
-RF = ranger(dependent.variable.name = "Y",
-            data = data.frame(dataset[TR_ind, ]),
-            keep.inbag = T,
-            probability = F, # must be FALSE for reweighted RF
-            num.trees = 1000,
-            classification = T)
-
-### Fit a reweightedRF
-fit_Re_RF = reweighted_RF(RF = RF,
-                          data_x = dataset[TR_ind, 1:p],
-                          data_y = dataset[TR_ind, 'Y'])
-### Get some kernel values between testing and training samples. You may use your preferred kernels.
-eta = c(0.1, 0.5, 1) # 3 hyper-parameters
-distmat = as.matrix(dist(data_x[, c(1, 100)]))
-mean_dist = mean(distmat[TR_ind, TR_ind][upper.tri(distmat[TR_ind, TR_ind])])
-Kmat_ls = list()
-for (l_id in 1:length(eta)) { Kmat_ls[[l_id]] = exp(- distmat^2 / 2 / (mean_dist * eta[l_id])^2) }
-names(Kmat_ls) = paste0('eta = ', eta)
-new_Kmat_ls_RF = lapply(Kmat_ls, function(x) x[-TR_ind, TR_ind]) # a list of 3 kernel matrices: row: testing samples x column: training samples
-
-### Find predictions on testing samples using reweightedRF
-pred_Re_RF = predict_reweighted_RF(fit = fit_Re_RF,
-                                   new_data_x = dataset[- TR_ind, 1:p],
-                                   new_Kmat_ls = new_Kmat_ls_RF)
-pred_Re_RF$pred_mat[1:5, ] # 1st column includes predictions for testing samples using the originial RF; the other 3 columns are predictions using reweightedRF
+### Do prediction on testing samples
+pred_ensemble = predict_ensemble(fit = fit, # ensemble fit
+                                 distmat_ls = distmat_ls, # list of microbiome distances of both training and testing samples
+                                 TR_ind = TR_ind, # ids of training samples in the above list of distance matrices
+                                 TE_data = TE_data # testing data
+                                 ) 
 
 ### Classification error
-apply(pred_Re_RF$pred_mat, 2, function(x) mean(ifelse(x >= 0.5, 1, 0) != dataset[-TR_ind, 'Y']))
-
+apply(pred_ensemble, 2, function(x) mean(ifelse(x >= 0.5, 1, 0) != TE_data_withY[, 'Y']))
