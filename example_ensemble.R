@@ -1,5 +1,3 @@
-source('func.R')
-
 library(ranger) # for random forest
 library(castor) # for microbiome distance calculation
 library(Rsolnp) # for finding ensemble weights
@@ -7,6 +5,8 @@ library(quadprog) # for finding ensemble weights
 library(pROC) # for AUC calculation
 library(Rcpp)
 library(RcppArmadillo)
+
+source('func.R')
 
 ### Load "dataset" (600 samples of 856 OTU counts + outcome) and "tree" (a phylogenetic tree)
 load('./Data/Simulated_data.RData')
