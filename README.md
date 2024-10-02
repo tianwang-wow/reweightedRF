@@ -1,12 +1,6 @@
  
 ================
 
-<style type="text/css">
-  body{
-  font-size: 15pt;
-}
-</style>
-
 ## File list
 
 The zip file in the supplement includes the following files:
