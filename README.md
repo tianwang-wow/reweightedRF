@@ -1,6 +1,3 @@
- 
-================
-
 ## File list
 
 The zip file in the supplement includes the following files:
