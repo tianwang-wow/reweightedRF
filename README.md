@@ -144,8 +144,7 @@ barplot(fit$ens_weights,
 
 ![](README_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
 
-We can see that reweighted-RF using the weighted UniFrac distance has a
-large weight.
+We can see that reweighted-RF using the weighted UniFrac distance has a dominantly large weight. This suggests that signal OTUs that are associated with the outcome or predictive of the outcome might be OTUs that are close to each other on the phylogenetic tree and with high abundance levels.
 
 Do prediction on test samples:
 
